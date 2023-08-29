@@ -5,8 +5,9 @@ import { h, MessageEncoder, Quester } from '@satorijs/satori'
 import FormData from 'form-data'
 
 import { LarkBot } from './bot'
-import { BaseResponse, Message, MessageContent, MessageType } from './types'
+import { BaseResponse, Message } from './types'
 import { extractIdType } from './utils'
+import { MessageContent, MessageType } from './types/message'
 
 export interface Addition {
   file: MessageContent.MediaContents
@@ -22,12 +23,14 @@ export class LarkMessageEncoder extends MessageEncoder<LarkBot> {
 
   async post(data?: any) {
     try {
-      let resp: BaseResponse & { data: Message }
+      let resp: BaseResponse & { data?: Message }
       if (this.quote) {
-        resp = await this.bot.internal?.replyMessage(this.quote, data)
+        resp = await this.bot.internal?.replyImMessage(this.quote, data)
       } else {
         data.receive_id = this.channelId
-        resp = await this.bot.internal?.sendMessage(extractIdType(this.channelId), data)
+        resp = await this.bot.internal?.createImMessage(data, {
+          receive_id_type: extractIdType(this.channelId),
+        })
       }
       const session = this.bot.session()
       session.messageId = resp.data.message_id
@@ -92,7 +95,7 @@ export class LarkMessageEncoder extends MessageEncoder<LarkBot> {
 
     if (type === 'image') {
       payload.append('image_type', 'message')
-      const { data } = await this.bot.internal.uploadImage(payload)
+      const { data } = await this.bot.internal.createImImage(payload)
       return {
         type: 'image',
         file: {
@@ -118,7 +121,7 @@ export class LarkMessageEncoder extends MessageEncoder<LarkBot> {
         }
       }
       payload.append('file_name', filename)
-      const { data } = await this.bot.internal.uploadFile(payload)
+      const { data } = await this.bot.internal.createImFile(payload)
       return {
         type: msgType,
         file: {
@@ -161,6 +164,7 @@ export class LarkMessageEncoder extends MessageEncoder<LarkBot> {
         if (attrs.url) {
           await this.flush()
           this.addition = await this.sendFile(type, attrs.url)
+          await this.flush()
         }
         break
       case 'figure': // FIXME: treat as message element for now

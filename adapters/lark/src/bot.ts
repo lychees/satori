@@ -45,7 +45,7 @@ export class LarkBot extends Bot<LarkBot.Config> {
   }
 
   private async refreshToken() {
-    const { tenant_access_token: token } = await this.internal.getTenantAccessToken({
+    const { tenant_access_token: token } = await this.internal.tenantAccessTokenInternalAuth({
       app_id: this.config.appId,
       app_secret: this.config.appSecret,
     })
@@ -68,14 +68,14 @@ export class LarkBot extends Bot<LarkBot.Config> {
   }
 
   async editMessage(channelId: string, messageId: string, content: h.Fragment) {
-    await this.internal.updateMessage(messageId, {
+    await this.internal.updateImMessage(messageId, {
       content: h.normalize(content).join(''),
       msg_type: 'text',
     })
   }
 
   async deleteMessage(channelId: string, messageId: string) {
-    await this.internal.deleteMessage(messageId)
+    await this.internal.deleteImMessage(messageId)
   }
 }
 
@@ -100,14 +100,14 @@ export namespace LarkBot {
         Schema.object({
           platform: Schema.const('feishu').required(),
         }),
-        Quester.createConfig('https://open.feishu.cn/open-apis/'),
+        Quester.createConfig('https://open.feishu.cn/'),
         HttpServer.createConfig('/feishu'),
       ]),
       Schema.intersect([
         Schema.object({
           platform: Schema.const('lark').required(),
         }),
-        Quester.createConfig('https://open.larksuite.com/open-apis/'),
+        Quester.createConfig('https://open.larksuite.com/'),
         HttpServer.createConfig('/lark'),
       ]),
     ]),

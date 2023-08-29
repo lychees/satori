@@ -1,10 +1,8 @@
-import { Internal, Lark } from '..'
-import { Paginated, Pagination } from '../utils'
+import { Lark } from '..'
 
 import { MessageContent } from './content'
 
 export * from './content'
-export * from './asset'
 
 export type MessageType = 'text' | 'post' | 'image' | 'file' | 'audio' | 'media' | 'sticker' | 'interactive' | 'share_chat' | 'share_user'
 
@@ -21,16 +19,6 @@ export interface MessageContentMap {
 }
 
 export type MessageContentType<T extends MessageType> = T extends keyof MessageContentMap ? MessageContentMap[T] : any
-
-export interface Sender extends Lark.UserIdentifiers {
-  sender_type: string
-  tenant_key: string
-}
-export interface Mention extends Lark.UserIdentifiers {
-  key: string
-  name: string
-  tenant_key: string
-}
 
 declare module '../event' {
   export interface Events {
@@ -81,122 +69,3 @@ export interface MessagePayload {
   content: string
   msg_type: string
 }
-
-export interface Message {
-  /**
-   * The id of current message
-   *
-   * Should be started with `om_`
-   */
-  message_id: string
-  /**
-   * The id of the *root* message in reply chains
-   * @see https://open.larksuite.com/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message/intro#ac79c1c2
-   */
-  root_id: string
-
-  /**
-   * The id of the direct *parent* message in reply chains
-   * @see https://open.larksuite.com/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message/intro#ac79c1c2
-   */
-  parent_id: string
-
-  /**
-   * The message type.
-   * @see https://open.larksuite.com/document/uAjLw4CM/ukTMukTMukTM/im-v1/message/create_json
-   */
-  msg_type: MessageType
-
-  /**
-   * The timestamp when the message is created in milliseconds.
-   */
-  create_time: string
-
-  /**
-   * The timestamp when the message is last updated in milliseconds.
-   */
-  update_time: string
-
-  /**
-   * Whether the message is deleted.
-   */
-  deleted: boolean
-
-  /**
-   * Whether the message is updated.
-   */
-  updated: boolean
-
-  /**
-   * The id of the group / channel the message is sent to.
-   */
-  chat_id: string
-
-  /**
-   * The sender of the message.
-   * Can be a user or an app.
-   */
-  sender: Sender
-
-  /**
-   * The body of the message.
-   */
-  body: {
-    /**
-     * The content of the message.
-     * Should be a string that represents the JSON object contains the message content.
-     */
-    content: string
-  }
-
-  /**
-   * Users mentioned in the message.
-   */
-  mentions: Mention[]
-
-  /**
-   * The id of the direct *parent* message in `merge and repost` chains.
-   */
-  upper_message_id: string
-}
-
-export interface ReadUser {
-  user_id_type: Lark.UserIdType
-  user_id: string
-  timestamp: string
-  tenant_key: string
-}
-
-declare module '../internal' {
-  export interface Internal {
-    /** @see https://open.larksuite.com/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message/create */
-    sendMessage(receive_id_type: Lark.ReceiveIdType, message: MessagePayload): Promise<BaseResponse & { data: Message }>
-    /** @see https://open.larksuite.com/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message/reply */
-    replyMessage(message_id: string, message: MessagePayload): Promise<BaseResponse & { data: Message }>
-    /** @see https://open.larksuite.com/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message/update */
-    updateMessage(message_id: string, message: Omit<MessagePayload, 'receive_id'>): Promise<BaseResponse & { data: Message }>
-    /** @see https://open.larksuite.com/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message/get */
-    getMessage(message_id: string): Promise<BaseResponse & { data: Message }>
-    /** @see https://open.larksuite.com/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message/delete */
-    deleteMessage(message_id: string): Promise<BaseResponse>
-    /** @see https://open.larksuite.com/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/message/read_users */
-    getMessageReadUsers(message_id: string, params: Pagination<{ user_id_type: Lark.UserIdType }>): Promise<BaseResponse & { data: Paginated<ReadUser> }>
-  }
-}
-
-Internal.define({
-  '/im/v1/messages?receive_id_type={receive_id_type}': {
-    POST: 'sendMessage',
-  },
-  '/im/v1/messages/{message_id}/reply': {
-    POST: 'replyMessage',
-  },
-  '/im/v1/messages/{message_id}': {
-    GET: 'getMessage',
-    PUT: 'updateMessage',
-    DELETE: 'deleteMessage',
-  },
-  '/im/v1/messages/{message_id}/read_users': {
-    GET: 'getMessageReadUsers',
-  },
-})
